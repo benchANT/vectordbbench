@@ -2,7 +2,7 @@ import logging
 import time
 from contextlib import contextmanager
 from typing import Iterable
-from ..api import VectorDB
+from ..api import VectorDB, IndexUse
 from .config import ElasticCloudIndexConfig
 from elasticsearch.helpers import bulk
 
@@ -22,8 +22,10 @@ class ElasticCloud(VectorDB):
         id_col_name: str = "id",
         vector_col_name: str = "vector",
         drop_old: bool = False,
+        index_use: IndexUse = IndexUse.BOTH_KEEP,
         **kwargs,
     ):
+        log.warning("index_use paramater not supported yet")
         self.dim = dim
         self.db_config = db_config
         self.case_config = db_case_config

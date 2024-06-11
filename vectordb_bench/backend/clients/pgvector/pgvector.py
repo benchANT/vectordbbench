@@ -8,7 +8,8 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 
-from ..api import IndexType, VectorDB, DBCaseConfig
+from ..index_helper import createIndexForLoad
+from ..api import IndexType, VectorDB, DBCaseConfig, IndexUse
 
 log = logging.getLogger(__name__)
 
@@ -21,13 +22,17 @@ class PgVector(VectorDB):
         db_case_config: DBCaseConfig,
         collection_name: str = "PgVectorCollection",
         drop_old: bool = False,
+        index_use: IndexUse = IndexUse.BOTH_KEEP,
         **kwargs,
     ):
+        log.warning("index_use paramater not supported yet")
         self.name = "PgVector"
         self.db_config = db_config
         self.case_config = db_case_config
         self.table_name = collection_name
         self.dim = dim
+        self.drop_old = drop_old
+        self.index_use = index_use
 
         self._index_name = "pqvector_index"
         self._primary_field = "id"
@@ -42,13 +47,20 @@ class PgVector(VectorDB):
         self.cursor.execute('CREATE EXTENSION IF NOT EXISTS vector')
         self.conn.commit()
 
-        if drop_old :
+        if self.drop_old :
             log.info(f"Pgvector client drop table : {self.table_name}")
             # self.pg_table.drop(pg_engine, checkfirst=True)
             self._drop_index()
             self._drop_table()
-            self._create_table(dim)
+        
+        self._create_table(dim)
+        if createIndexForLoad(self.index_use) == True:
             self._create_index()
+        elif not self.drop_old:
+            log.warning("should not use index for load, but drop old not set")
+            log.warning("TODO: try to remove existing index")
+        else:
+            log.info("not using index for load")
 
         self.cursor.close()
         self.conn.close()
@@ -87,8 +99,17 @@ class PgVector(VectorDB):
 
     def optimize(self):
         log.info(f"{self.name} optimizing")
-        self._drop_index()
-        self._create_index()
+        if (self.index_use == IndexUse.LOAD or
+            self.index_use == IndexUse.BOTH_RESET):
+            self._drop_index()
+        if (self.index_use == IndexUse.RUN or
+            self.index_use == IndexUse.BOTH_RESET):
+            self._create_index()
+        elif self.index_use == IndexUse.BOTH_KEEP:
+            log.warning("keeping index for run phase")
+        elif not self.drop_old:
+            log.warning("should not use index for run, but drop old not set, unknown state")
+            log.warning("TODO: try to remove existing index")
 
     def ready_to_search(self):
         pass

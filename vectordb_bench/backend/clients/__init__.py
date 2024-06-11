@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Type
+from .index_helper import createIndexForLoad
 from .api import (
     VectorDB,
     DBConfig,
@@ -7,6 +8,7 @@ from .api import (
     EmptyDBCaseConfig,
     IndexType,
     MetricType,
+    IndexUse
 )
 
 
@@ -29,9 +31,11 @@ class DB(Enum):
     QdrantCloud = "QdrantCloud"
     WeaviateCloud = "WeaviateCloud"
     PgVector = "PgVector"
+    # PgVector2 = "PgVector2"
     PgVectoRS = "PgVectoRS"
     Redis = "Redis"
     Chroma = "Chroma"
+    SingleStoreDB = "SingleStoreDB"
 
 
     @property
@@ -77,6 +81,10 @@ class DB(Enum):
             from .chroma.chroma import ChromaClient
             return ChromaClient
 
+        if self == DB.SingleStoreDB:
+            from .singlestoredb.singlestoredb import SingleStoreDB
+            return SingleStoreDB
+
     @property
     def config_cls(self) -> Type[DBConfig]:
         """Import while in use"""
@@ -108,6 +116,10 @@ class DB(Enum):
             from .pgvector.config import PgVectorConfig
             return PgVectorConfig
 
+# +        if self == DB.PgVector2:
+# +            from .pgvector2.config import PgVector2Config
+# +            return PgVector2Config
+
         if self == DB.PgVectoRS:
             from .pgvecto_rs.config import PgVectoRSConfig
             return PgVectoRSConfig
@@ -119,6 +131,10 @@ class DB(Enum):
         if self == DB.Chroma:
             from .chroma.config import ChromaConfig
             return ChromaConfig
+        
+        if self == DB.SingleStoreDB:
+            from .singlestoredb.singlestoredb import SingleStoreDBConfig
+            return SingleStoreDBConfig
 
     def case_config_cls(self, index_type: IndexType | None = None) -> Type[DBCaseConfig]:
         if self == DB.Milvus:
@@ -132,6 +148,8 @@ class DB(Enum):
         if self == DB.ElasticCloud:
             from .elastic_cloud.config import ElasticCloudIndexConfig
             return ElasticCloudIndexConfig
+# +            from .elastic_cloud.config import _elasticcloud_case_config
+# +            return _elasticcloud_case_config.get(index_type)
 
         if self == DB.QdrantCloud:
             from .qdrant_cloud.config import QdrantIndexConfig
@@ -145,14 +163,22 @@ class DB(Enum):
             from .pgvector.config import _pgvector_case_config
             return _pgvector_case_config.get(index_type)
 
+# +        if self == DB.PgVector2:
+# +            from .pgvector2.config import PgVector2IndexConfig
+# +            return PgVector2IndexConfig
+
         if self == DB.PgVectoRS:
             from .pgvecto_rs.config import _pgvecto_rs_case_config
             return _pgvecto_rs_case_config.get(index_type)
+
+        if self == DB.SingleStoreDB:
+            from .singlestoredb.config import _singlestore_case_config
+            return _singlestore_case_config.get(index_type)
 
         # DB.Pinecone, DB.Chroma, DB.Redis
         return EmptyDBCaseConfig
 
 
 __all__ = [
-    "DB", "VectorDB", "DBConfig", "DBCaseConfig", "IndexType", "MetricType", "EmptyDBCaseConfig",
+    "DB", "VectorDB", "DBConfig", "DBCaseConfig", "IndexType", "MetricType", "EmptyDBCaseConfig", "IndexUse", "createIndexForLoad"
 ]

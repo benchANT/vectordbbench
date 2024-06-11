@@ -1,0 +1,3 @@
+converting parameters to env variables
+dbCaseConfig: index=<IndexType.HNSW: 'HNSW'> metric_type=None M=30 efConstruction=360 ef=100 --- <class 'vectordb_bench.backend.clients.singlestoredb.config.HNSWConfig'>
+setting port param to: 3306

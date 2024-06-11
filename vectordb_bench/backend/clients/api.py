@@ -11,9 +11,22 @@ class MetricType(str, Enum):
     COSINE = "COSINE"
     IP = "IP"
 
+# We support deferring index build work until all compaction work for newly inserted
+# data is complete. This is expected to result in significantly faster load times,
+# but is only really an option for an initial load scenario. In other words, "True"
+# reflects build times for a one-time-load case - and is overall going to be faster,
+# if you're not measuring build time - while "False" reflects build times for an
+# ongoing ingest case. Other drivers are generally written around a streaming case.
+class IndexUse(str, Enum):
+    NONE = "none",
+    LOAD = "load",
+    RUN  = "run",
+    BOTH_KEEP = "keep",
+    BOTH_RESET = "reset"
 
 class IndexType(str, Enum):
     HNSW = "HNSW"
+    HNSWPQ = "HNSWPQ"
     DISKANN = "DISKANN"
     IVFFlat = "IVF_FLAT"
     IVFSQ8 = "IVF_SQ8"
@@ -23,6 +36,8 @@ class IndexType(str, Enum):
     GPU_IVF_FLAT = "GPU_IVF_FLAT"
     GPU_IVF_PQ = "GPU_IVF_PQ"
     GPU_CAGRA = "GPU_CAGRA"
+    IVFPQ = "IVFPQ"
+    IVFPQFS = "SCANN"
 
 
 class DBConfig(ABC, BaseModel):

@@ -38,6 +38,10 @@ dependencies = [
     "pydantic<v2",
     "scikit-learn",
     "pymilvus", # with pandas, numpy, ujson
+    "pgvector",
+    "singlestoredb",
+    "sqlalchemy",
+    "chromadb",
 ]
 dynamic = ["version"]
 
@@ -51,7 +55,7 @@ all = [
     "grpcio==1.53.0", # for qdrant-client and pymilvus
     "grpcio-tools==1.53.0", # for qdrant-client and pymilvus
     "qdrant-client",
-    "pinecone-client",
+    "pinecone-client==2.2.4",
     "weaviate-client",
     "elasticsearch",
     "pgvector",
@@ -62,7 +66,7 @@ all = [
 ]
 
 qdrant = [ "qdrant-client" ]
-pinecone = [ "pinecone-client" ]
+pinecone = [ "pinecone-client==2.2.4" ]
 weaviate = [ "weaviate-client" ]
 elastic = [ "elasticsearch" ]
 pgvector = [ "pgvector", "psycopg2" ]
