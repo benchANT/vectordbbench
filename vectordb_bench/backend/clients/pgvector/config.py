@@ -70,19 +70,19 @@ class HNSWConfig(PgVectorIndexConfig):
 
 
 class IVFFlatConfig(PgVectorIndexConfig):
-    lists: int | None = 1000
-    probes: int | None = 10
+    nlist: int | None = 1000
+    nprobe: int | None = 10
     index: IndexType = IndexType.IVFFlat
 
     def index_param(self) -> dict:
         return {
-            "lists" : self.lists,
+            "lists" : self.nlist,
             "metric" : self.parse_metric()
         }
 
     def search_param(self) -> dict:
         return {
-            "probes" : self.probes,
+            "probes" : self.nprobe,
             "metric_fun" : self.parse_metric_fun_str(),
             "metric_fun_op" : self.parse_metric_fun_op(),
         }

@@ -2,7 +2,6 @@ from pydantic import BaseModel, SecretStr
 
 from ..api import DBConfig, DBCaseConfig, MetricType
 
-
 class WeaviateConfig(DBConfig):
     url: SecretStr
     api_key: SecretStr

@@ -224,8 +224,8 @@ class DataSetIterator:
         p = pathlib.Path(self._ds.data_dir, file_name)
         log.info(f"Get iterator for {p.name}")
         if not p.exists():
-            raise IndexError(f"No such file {p}")
             log.warning(f"No such file: {p}")
+            raise IndexError(f"No such file {p}")
         return ParquetFile(p).iter_batches(config.NUM_PER_BATCH)
 
     def __next__(self) -> pd.DataFrame:

@@ -1,7 +1,7 @@
+argparse
 grpcio==1.53.0
 grpcio-tools==1.53.0
 qdrant-client
-pinecone-client
 weaviate-client
 elasticsearch
 pgvector
@@ -11,6 +11,7 @@ chromadb
 pytz
 streamlit-autorefresh
 streamlit>=1.23.0
+# streamlit==1.31.1
 streamlit_extras
 tqdm
 s3fs
@@ -21,3 +22,7 @@ environs
 pydantic<v2
 scikit-learn
 pymilvus
+psycopg2-binary
+# oss2
+singlestoredb
+pinecone-client==2.2.4

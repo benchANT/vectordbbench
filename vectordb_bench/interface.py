@@ -3,7 +3,7 @@ import pathlib
 import signal
 import logging
 import uuid
-import concurrent
+import concurrent.futures
 import multiprocessing as mp
 from multiprocessing.connection import Connection
 
@@ -13,6 +13,7 @@ from enum import Enum
 from . import config
 from .metric import Metric
 from .models import (
+    IndexUse,
     TaskConfig,
     TestResult,
     CaseResult,
@@ -41,9 +42,13 @@ class BenchMarkRunner:
         self.latest_error: str | None = None
         self.drop_old: bool = True
         self.dataset_source: DatasetSource = DatasetSource.S3
+        self.index_use = IndexUse.BOTH_KEEP
 
     def set_drop_old(self, drop_old: bool):
         self.drop_old = drop_old
+
+    def set_index_use(self, index_use: IndexUse):
+        self.index_use = index_use
 
     def set_download_address(self, use_aliyun: bool):
         if use_aliyun:
@@ -165,7 +170,7 @@ class BenchMarkRunner:
                     drop_old = False
                 try:
                     log.info(f"[{idx+1}/{running_task.num_cases()}] start case: {runner.display()}, drop_old={drop_old}")
-                    case_res.metrics = runner.run(drop_old)
+                    case_res.metrics = runner.run(drop_old, self.index_use)
                     log.info(f"[{idx+1}/{running_task.num_cases()}] finish case: {runner.display()}, "
                         f"result={case_res.metrics}, label={case_res.label}")
 

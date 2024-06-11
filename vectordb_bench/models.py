@@ -11,6 +11,7 @@ from .backend.clients import (
     DBConfig,
     DBCaseConfig,
     IndexType,
+    IndexUse
 )
 from .backend.cases import CaseType
 from .base import BaseModel
@@ -60,7 +61,7 @@ class CaseConfigParamType(Enum):
     cache_dataset_on_device = "cache_dataset_on_device"
     refine_ratio = "refine_ratio"
     level = "level"
-
+    reorderK = "reorder_k"
 
 class CustomizedCase(BaseModel):
     pass

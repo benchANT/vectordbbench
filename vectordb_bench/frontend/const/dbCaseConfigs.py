@@ -16,6 +16,12 @@ CASE_LIST_WITH_DIVIDER = [
     CaseType.Performance768D100M,
     CaseType.Performance768D10M,
     CaseType.Performance768D1M,
+# +    CaseType.Performance128D1M,
+# +    CaseType.Performance128D10M,
+# +    CaseType.Performance128D100M,
+# +    CaseType.Performance128D1B,
+# +    CaseType.Performance960D1M,
+# +    CaseType.Performance96D10M,
     DIVIDER,
     CaseType.Performance1536D5M,
     CaseType.Performance1536D500K,
@@ -67,6 +73,7 @@ CaseConfigParamInput_IndexType = CaseConfigInput(
             IndexType.GPU_IVF_FLAT.value,
             IndexType.GPU_IVF_PQ.value,
             IndexType.GPU_CAGRA.value,
+            IndexType.IVFPQFS.value,
         ],
     },
 )
@@ -126,6 +133,17 @@ CaseConfigParamInput_EFConstruction_PgVectoRS = CaseConfigInput(
     isDisplayed=lambda config: config[CaseConfigParamType.IndexType]
     == IndexType.HNSW.value,
 )
+
+# +CaseConfigParamInput_IndexType_ES = CaseConfigInput(
+# +    label=CaseConfigParamType.IndexType,
+# +    inputType=InputType.Option,
+# +    inputConfig={
+# +        "options": [
+# +            IndexType.HNSW.value,
+# +            IndexType.HNSWPQ.value,
+# +        ],
+# +    },
+# +)
 
 CaseConfigParamInput_M_ES = CaseConfigInput(
     label=CaseConfigParamType.M,
@@ -201,6 +219,7 @@ CaseConfigParamInput_Nlist = CaseConfigInput(
         IndexType.IVFSQ8.value,
         IndexType.GPU_IVF_FLAT.value,
         IndexType.GPU_IVF_PQ.value,
+        IndexType.IVFPQFS.value,
     ],
 )
 
@@ -218,6 +237,7 @@ CaseConfigParamInput_Nprobe = CaseConfigInput(
         IndexType.IVFSQ8.value,
         IndexType.GPU_IVF_FLAT.value,
         IndexType.GPU_IVF_PQ.value,
+        IndexType.IVFPQFS.value,
     ],
 )
 
@@ -457,6 +477,30 @@ CaseConfigParamInput_QuantizationRatio_PgVectoRS = CaseConfigInput(
     ],
 )
 
+CaseConfigParamInput_QuantizationRatio_SingleStoreDB = CaseConfigInput(
+    label=CaseConfigParamType.quantizationRatio,
+    inputType=InputType.Number,
+    inputConfig={
+        "min": 1,
+        "max": 256,
+        "value": 4,
+    },
+    isDisplayed=lambda config: config.get(CaseConfigParamType.IndexType, None) in ( IndexType.IVFPQFS.value ),
+)
+
+
+CaseConfigParamInput_ReorderK = CaseConfigInput(
+    label=CaseConfigParamType.reorderK,
+    inputType=InputType.Number,
+    inputConfig={
+        "min": 1,
+        "max": 65536,
+        "value": 1000,
+    },
+    isDisplayed=lambda config: config.get(CaseConfigParamType.IndexType, None)
+    in (IndexType.IVFFlat.value, IndexType.IVFPQFS.value),
+)
+
 CaseConfigParamInput_ZillizLevel = CaseConfigInput(
     label=CaseConfigParamType.level,
     inputType=InputType.Number,
@@ -520,14 +564,14 @@ ESPerformanceConfig = [
 
 PgVectorLoadingConfig = [
     CaseConfigParamInput_IndexType_PG,
-    CaseConfigParamInput_Lists,
+    CaseConfigParamInput_Nlist,
     CaseConfigParamInput_M,
     CaseConfigParamInput_EFC_PG
 ]
 PgVectorPerformanceConfig = [
     CaseConfigParamInput_IndexType_PG,
-    CaseConfigParamInput_Lists,
-    CaseConfigParamInput_Probes,
+    CaseConfigParamInput_Nlist,
+    CaseConfigParamInput_Nprobe,
     CaseConfigParamInput_M,
     CaseConfigParamInput_EF_PG,
     CaseConfigParamInput_EFC_PG
@@ -550,6 +594,24 @@ PgVectoRSPerformanceConfig = [
     CaseConfigParamInput_Nprobe,
     CaseConfigParamInput_QuantizationType_PgVectoRS,
     CaseConfigParamInput_QuantizationRatio_PgVectoRS,
+]
+
+SingleStoreLoadConfig = [
+    CaseConfigParamInput_IndexType,
+    CaseConfigParamInput_M,
+    CaseConfigParamInput_EFConstruction_Milvus,
+    CaseConfigParamInput_Nlist,
+]
+
+SingleStorePerformanceConfig = [
+    CaseConfigParamInput_IndexType,
+    CaseConfigParamInput_M,
+    CaseConfigParamInput_EFConstruction_Milvus,
+    CaseConfigParamInput_EF_Milvus,
+    CaseConfigParamInput_Nlist,
+    CaseConfigParamInput_Nprobe,
+    CaseConfigParamInput_QuantizationRatio_SingleStoreDB,
+    CaseConfigParamInput_ReorderK
 ]
 
 ZillizCloudPerformanceConfig = [
@@ -579,5 +641,9 @@ CASE_CONFIG_MAP = {
     DB.PgVectoRS: {
         CaseLabel.Load: PgVectoRSLoadingConfig,
         CaseLabel.Performance: PgVectoRSPerformanceConfig,
+    },
+    DB.SingleStoreDB: {
+        CaseLabel.Load: SingleStoreLoadConfig,
+        CaseLabel.Performance: SingleStorePerformanceConfig,
     },
 }

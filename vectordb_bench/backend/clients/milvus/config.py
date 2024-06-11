@@ -4,9 +4,15 @@ from ..api import DBConfig, DBCaseConfig, MetricType, IndexType
 
 class MilvusConfig(DBConfig):
     uri: SecretStr = "http://localhost:19530"
+    user: str
+    password: SecretStr
 
     def to_dict(self) -> dict:
-        return {"uri": self.uri.get_secret_value()}
+        return {
+            "uri": self.uri.get_secret_value(),
+            "user": self.user,
+            "password": self.password.get_secret_value(),
+        }
 
 
 class MilvusIndexConfig(BaseModel):
@@ -222,6 +228,25 @@ class GPUCAGRAConfig(MilvusIndexConfig, DBCaseConfig):
             },
         }
 
+class SCANNConfig(IVFFlatConfig, DBCaseConfig):
+    index: IndexType = IndexType.IVFPQFS
+    nlist: int
+    nprobe: int | None = None
+    quantizationRatio: int
+    reorder_k: int
+
+    def index_param(self) -> dict:
+        return {
+            "metric_type": self.parse_metric(),
+            "index_type": self.index.value,
+            "params": {"nlist": self.nlist, "m_dim_divisor" : self.quantizationRatio, "use_elkan" : False},
+        }
+
+    def search_param(self) -> dict:
+        return {
+            "metric_type": self.parse_metric(),
+            "params": {"nprobe": self.nprobe, "reorder_k" : self.reorder_k},
+        }
 
 _milvus_case_config = {
     IndexType.AUTOINDEX: AutoIndexConfig,
@@ -233,4 +258,5 @@ _milvus_case_config = {
     IndexType.GPU_IVF_FLAT: GPUIVFFlatConfig,
     IndexType.GPU_IVF_PQ: GPUIVFPQConfig,
     IndexType.GPU_CAGRA: GPUCAGRAConfig,
+    IndexType.IVFPQFS: SCANNConfig,
 }

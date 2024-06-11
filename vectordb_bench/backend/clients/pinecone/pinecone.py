@@ -4,7 +4,7 @@ import logging
 from contextlib import contextmanager
 from typing import Type
 
-from ..api import VectorDB, DBConfig, DBCaseConfig, EmptyDBCaseConfig, IndexType
+from ..api import VectorDB, DBConfig, DBCaseConfig, EmptyDBCaseConfig, IndexType, IndexUse
 from .config import PineconeConfig
 
 
@@ -20,9 +20,11 @@ class Pinecone(VectorDB):
         db_config: dict,
         db_case_config: DBCaseConfig,
         drop_old: bool = False,
+        index_use: IndexUse = IndexUse.BOTH_KEEP,
         **kwargs,
     ):
         """Initialize wrapper around the milvus vector database."""
+        log.warning(f"index_use paramater set to '{index_use}' cannot be used for Pinecone")
         self.index_name = db_config["index_name"]
         self.api_key = db_config["api_key"]
         self.environment = db_config["environment"]
@@ -40,9 +42,11 @@ class Pinecone(VectorDB):
                 if (index_dim != dim):
                     raise ValueError(
                         f"Pinecone index {self.index_name} dimension mismatch, expected {index_dim} got {dim}")
-                log.info(
-                    f"Pinecone client delete old index: {self.index_name}")
-                index.delete(delete_all=True)
+#                log.info(
+#                    f"Pinecone client delete old index: {self.index_name}")
+#                index.delete(delete_all=True)
+                log.warning(
+                    f"benchANT patch: Not deleting old index: {self.index_name}")
                 index.close()
             else:
                 raise ValueError(

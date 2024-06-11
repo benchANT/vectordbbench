@@ -9,3 +9,4 @@ __MACOSX
 build/
 venv/
 .idea/
+vectordb_bench/results

@@ -8,7 +8,7 @@ from enum import Enum, auto
 from . import utils
 from .cases import Case, CaseLabel
 from ..base import BaseModel
-from ..models import TaskConfig, PerformanceTimeoutError
+from ..models import TaskConfig, PerformanceTimeoutError, IndexUse
 
 from .clients import (
     api,
@@ -71,7 +71,7 @@ class CaseRunner(BaseModel):
         return self.db.need_normalize_cosine() and \
             self.ca.dataset.data.metric_type == MetricType.COSINE
 
-    def init_db(self, drop_old: bool = True) -> None:
+    def init_db(self, index_use: IndexUse, drop_old: bool = True) -> None:
         db_cls = self.config.db.init_cls
 
         self.db = db_cls(
@@ -79,21 +79,22 @@ class CaseRunner(BaseModel):
             db_config=self.config.db_config.to_dict(),
             db_case_config=self.config.db_case_config,
             drop_old=drop_old,
+            index_use=index_use,
         )
 
-    def _pre_run(self, drop_old: bool = True):
+    def _pre_run(self, index_use: IndexUse, drop_old: bool = True):
         try:
-            self.init_db(drop_old)
+            self.init_db(index_use, drop_old)
             self.ca.dataset.prepare(self.dataset_source, filters=self.ca.filter_rate)
         except ModuleNotFoundError as e:
             log.warning(f"pre run case error: please install client for db: {self.config.db}, error={e}")
             raise e from None
         except Exception as e:
             log.warning(f"pre run case error: {e}")
-            raise e from None
+            raise e
 
-    def run(self, drop_old: bool = True) -> Metric:
-        self._pre_run(drop_old)
+    def run(self, drop_old: bool = True, index_use: IndexUse = IndexUse.BOTH_KEEP) -> Metric:
+        self._pre_run(index_use, drop_old)
 
         if self.ca.label == CaseLabel.Load:
             return self._run_capacity_case()
@@ -116,7 +117,7 @@ class CaseRunner(BaseModel):
             count = runner.run_endlessness()
         except Exception as e:
             log.warning(f"Failed to run capacity case, reason = {e}")
-            raise e from None
+            raise e
         else:
             log.info(f"Capacity case loading dataset reaches VectorDB's limit: max capacity = {count}")
             return Metric(max_load_count=count)
@@ -145,7 +146,7 @@ class CaseRunner(BaseModel):
         except Exception as e:
             log.warning(f"Failed to run performance case, reason = {e}")
             traceback.print_exc()
-            raise e from None
+            raise e
         else:
             log.info(f"Performance case got result: {m}")
             return m
@@ -157,7 +158,7 @@ class CaseRunner(BaseModel):
             runner = SerialInsertRunner(self.db, self.ca.dataset, self.normalize, self.ca.load_timeout)
             runner.run()
         except Exception as e:
-            raise e from None
+            raise e
         finally:
             runner = None
 
@@ -173,7 +174,7 @@ class CaseRunner(BaseModel):
         except Exception as e:
             log.warning(f"search error: {str(e)}, {e}")
             self.stop()
-            raise e from None
+            raise e
 
     def _conc_search(self):
         """Performance concurrency tests, search the test data endlessness
@@ -186,7 +187,7 @@ class CaseRunner(BaseModel):
             return self.search_runner.run()
         except Exception as e:
             log.warning(f"search error: {str(e)}, {e}")
-            raise e from None
+            raise e
         finally:
             self.stop()
 
@@ -207,7 +208,7 @@ class CaseRunner(BaseModel):
                 raise PerformanceTimeoutError("Performance case optimize timeout") from e
             except Exception as e:
                 log.warning(f"VectorDB optimize error: {e}")
-                raise e from None
+                raise e
 
     def _init_search_runner(self):
         test_emb = np.stack(self.ca.dataset.test_data["emb"])
