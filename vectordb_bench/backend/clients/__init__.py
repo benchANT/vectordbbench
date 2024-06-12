@@ -146,10 +146,10 @@ class DB(Enum):
             return AutoIndexConfig
 
         if self == DB.ElasticCloud:
-            from .elastic_cloud.config import ElasticCloudIndexConfig
-            return ElasticCloudIndexConfig
-# +            from .elastic_cloud.config import _elasticcloud_case_config
-# +            return _elasticcloud_case_config.get(index_type)
+#            from .elastic_cloud.config import ElasticCloudIndexConfig
+#            return ElasticCloudIndexConfig
+            from .elastic_cloud.config import _elasticcloud_case_config
+            return _elasticcloud_case_config.get(index_type)
 
         if self == DB.QdrantCloud:
             from .qdrant_cloud.config import QdrantIndexConfig

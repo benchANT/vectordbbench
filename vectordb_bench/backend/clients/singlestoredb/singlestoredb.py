@@ -11,7 +11,7 @@ import threading
 from contextlib import contextmanager
 from typing import Any
 from ..api import VectorDB, DBConfig, DBCaseConfig, IndexType, IndexUse
-from .config import SingleStoreDBConfig, SingleStoreDBIndexConfig
+from .config import SingleStoreDBConfig, SingleStoreDBIndexConfig, SingleStoreOptimizeStrategy
 
 from ..api import VectorDB, DBCaseConfig, MetricType
 import singlestoredb as s2
@@ -81,6 +81,7 @@ class SingleStoreDB(VectorDB):
         self.internal_columnstore_max_uncompressed_blob_size = db_config.get("columnstore_max_blobsize", None)
         self.columnstore_segment_rows = db_config.get("columnstore_segment_rows", None)
         self.disable_compaction = db_config.get("disable_compaction", False)
+        self.optimize_strategy = db_config.get("optimize_strategy", None)
         # hard-coded for now
         self.vector_data_type = " F32 "
         self.table_options = " option 'SeekableString' "
@@ -94,6 +95,8 @@ class SingleStoreDB(VectorDB):
             del self.db_config["columnstore_segment_rows"]
         if "disable_compaction" in self.db_config:
             del self.db_config["disable_compaction"]
+        if "optimize_strategy" in self.db_config:
+            del self.db_config["optimize_strategy"]
         # placeholders for later
         self._cur = None
         self._ann_query = None
@@ -105,7 +108,6 @@ class SingleStoreDB(VectorDB):
             raise Exception("columnstore_max_blobsize must be set, when disable_compaction is True")
         if self.partition_count != None and self.columnstore_segment_rows != None and (self.columnstore_segment_rows % self.partition_count) != 0:
             log.error("columnstore_segment_rows divided by partition_count should be an integer")
-            
 
         # code starts here
         conn = self._connect()
@@ -124,6 +126,8 @@ class SingleStoreDB(VectorDB):
         else:
             log.info("not using index for load")
 
+        self._cur.execute("SHOW VARIABLES LIKE 'memsql_version'")
+        log.info(f"using Memsql version: {self._cur.fetchall()}")
         self._cur = None
     
     def _create_table(self):
@@ -266,12 +270,27 @@ class SingleStoreDB(VectorDB):
             self.warmed_query_debug = True
         self._cur.execute(query)
 
+    def _optimize_add_on(self):
+        query = None
+        if self.optimize_strategy == SingleStoreOptimizeStrategy.OPTIMIZE:
+            query = f"OPTIMIZE TABLE {self.table_name} WARM BLOB CACHE FOR INDEX {self._index_name};"
+        elif self.optimize_strategy == SingleStoreOptimizeStrategy.SELECT_ALL:
+            query = f"SELECT * FROM {self.table_name}"
+        elif self.optimize_strategy == SingleStoreOptimizeStrategy.SELECT_SUM:
+            query = f"SELECT SUM({self._primary_field}), VECTOR_SUM({self._vector_field}:>blob):>vector({self.dim}) FROM {self.table_name}"
+
+        if query != None:
+            log.debug(f"add-on optimize query: {query}.")
+            self._cur.execute(query)
+        else:
+            log.debug("not running any add-on optimize query.")
+
     def optimize(self):
         if log.isEnabledFor(logging.DEBUG):
             log.debug("SingleStoreDB.optimize called")
         # assert(self.drop_old==False)
-        self._cur.execute("optimize table " + self.table_name + " flush")
-        self._cur.execute("optimize table " + self.table_name + " full")
+        self._cur.execute("OPTIMIZE TABLE " + self.table_name + " flush")
+        self._cur.execute("OPTIMIZE TABLE " + self.table_name + " full")
         if (self.index_use == IndexUse.LOAD or
             self.index_use == IndexUse.BOTH_RESET):
             self._drop_index()
@@ -284,6 +303,8 @@ class SingleStoreDB(VectorDB):
         elif not self.drop_old:
             log.warning("should not use index for run, but drop old not set, unknown state")
             log.warning("TODO: try to remove existing index")
+        if self.optimize_strategy != None:
+            self._optimize_add_on()
         self._warm_query(doExplain = True)
 
     def ready_to_search(self):
