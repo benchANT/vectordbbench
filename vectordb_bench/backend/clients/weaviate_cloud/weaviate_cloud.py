@@ -25,30 +25,30 @@ class WeaviateCloud(VectorDB):
         **kwargs,
     ):
         """Initialize wrapper around the weaviate vector database."""
-        log.warning("index_use paramater not supported yet")
-        db_config.update("auth_client_secret", weaviate.AuthApiKey(api_key=db_config.get("auth_client_secret")))
+        # db_config.update("auth_client_secret", weaviate.AuthApiKey(api_key=db_config.get("auth_client_secret")))
         self.db_config = db_config
         self.case_config = db_case_config
         self.collection_name = collection_name
         self.drop_old = drop_old
         self.index_use = index_use
+        self.client = None
 
         self._scalar_field = "key"
         self._vector_field = "vector"
         self._index_name = "vector_idx"
 
         from weaviate import Client
-        client = Client(**db_config)
+        self.client = Client(**db_config)
         if drop_old:
             try:
-                if client.schema.exists(self.collection_name):
+                if self.client.schema.exists(self.collection_name):
                     log.info(f"weaviate client drop_old collection: {self.collection_name}")
-                    client.schema.delete_class(self.collection_name)
+                    self.client.schema.delete_class(self.collection_name)
             except WeaviateBaseError as e:
                 log.warning(f"Failed to drop collection: {self.collection_name} error: {str(e)}")
                 raise e from None
-        self._create_collection(client)
-        client = None
+        self._create_collection(self.client)
+        self.client = None
 
     @contextmanager
     def init(self) -> None:
@@ -70,7 +70,7 @@ class WeaviateCloud(VectorDB):
 
     def optimize(self):
         assert self.client.schema.exists(self.collection_name)
-        log.info(f"{self.name} optimizing")
+        log.info(f"{self.collection_name} optimizing")
         if (self.index_use == IndexUse.LOAD or
             self.index_use == IndexUse.BOTH_RESET):
             self._drop_index()
@@ -104,17 +104,19 @@ class WeaviateCloud(VectorDB):
         if createIndexForLoad(self.index_use) == True:
             self._create_index()
         elif not self.drop_old:
-            log.warning("should not use index for load, but drop old not set")
-            log.warning("TODO: try to remove existing index")
+            log.warning("should not use index for load, but drop old not set. dropping old index.")
+            self._drop_index()
         else:
             log.info("not using index for load")
     
     def _create_index(self):
-        self.client.schema.update_config(self.collection_name, {"vectorIndexConfig": self.case_config.search_param() } )
+        params = self.case_config.search_param()
+        log.info("creating index ")
+        self.client.schema.update_config(self.collection_name, {"vectorIndexConfig": params } )
 
     def _drop_index(self):
-        log.warning("drop index currently not implemented for Weaviate")
-        # self.client.schema.update_config(self.collection_name, {"vectorIndexConfig":  } )
+        log.warning("dropping index")
+        self.client.schema.update_config(self.collection_name, {"vectorIndexConfig":  None} )
 
     def insert_embeddings(
         self,

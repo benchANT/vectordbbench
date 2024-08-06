@@ -1,5 +1,11 @@
 from pydantic import BaseModel, SecretStr
+from enum import Enum
 from ..api import DBConfig, DBCaseConfig, MetricType, IndexType
+
+class SingleStoreOptimizeStrategy(str, Enum):
+    OPTIMIZE = "OPTIMIZE",
+    SELECT_ALL = "SELECTALL",
+    SELECT_SUM = "SELECTSUM"
 
 # SINGLESTOREDB_URL_PLACEHOLDER = "singlestoredb://%s:%s@%s/%s"
 POSTGRE_URL_PLACEHOLDER = "postgresql://%s:%s@%s/%s"
@@ -14,6 +20,15 @@ class SingleStoreDBConfig(DBConfig):
     columnstore_max_blobsize : int | None = None
     columnstore_segment_rows : int | None = None
     disable_compaction : bool | None = None
+    optimize_strategy : str | None = None
+
+    def _opt_strategy_to_enum(self) -> SingleStoreOptimizeStrategy | None:
+        if self.optimize_strategy != None:
+            for o in SingleStoreOptimizeStrategy:
+                if o.value.lower() == self.optimize_strategy.lower():
+                    return o
+            raise Exception(f"invalid optimization option: {self.optimize_strategy}")
+        return None
 
     def to_dict(self) -> dict:
         user_str = self.user_name.get_secret_value()
@@ -34,6 +49,8 @@ class SingleStoreDBConfig(DBConfig):
             ret["columnstore_max_blobsize"] = self.columnstore_max_blobsize
         if self.partition_count != None:
             ret["partition_count"] = self.partition_count
+        if self.optimize_strategy != None:
+            ret["optimize_strategy"] = self._opt_strategy_to_enum()
         return ret | {
             "host": host_str,
             "port": port_param,

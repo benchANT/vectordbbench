@@ -27,12 +27,12 @@ class IndexUse(str, Enum):
 class IndexType(str, Enum):
     HNSW = "HNSW"
     HNSWPQ = "HNSWPQ"
+    HNSW_INT8 = "HNSW_INT8"
     DISKANN = "DISKANN"
     IVFFlat = "IVF_FLAT"
     IVFSQ8 = "IVF_SQ8"
     Flat = "FLAT"
     AUTOINDEX = "AUTOINDEX"
-    ES_HNSW = "hnsw"
     GPU_IVF_FLAT = "GPU_IVF_FLAT"
     GPU_IVF_PQ = "GPU_IVF_PQ"
     GPU_CAGRA = "GPU_CAGRA"

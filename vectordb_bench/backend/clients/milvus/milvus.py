@@ -42,6 +42,11 @@ class Milvus(VectorDB):
         self._scalar_field = "id"
         self._vector_field = "vector"
         self._index_name = "vector_idx"
+        if (self.index_use == IndexUse.LOAD or
+            self.index_use == IndexUse.NONE):
+            log.error(f"Milvus requires index for run phase. {self.index_use} not supported.")
+            raise Exception(f"Milvus requires index for run phase. {self.index_use} not supported.")
+
 
         from pymilvus import connections
         connections.connect(**self.db_config, timeout=30)
@@ -131,7 +136,10 @@ class Milvus(VectorDB):
                 self.col.load()
             self._compact()
             log.info(f"{self.name} optimizing before search")
-            self.col.load()
+            if (self.index_use == IndexUse.RUN or
+                self.index_use == IndexUse.BOTH_RESET or
+                self.index_use == IndexUse.BOTH_KEEP):
+                self.col.load()
         except Exception as e:
             log.warning(f"{self.name} optimize error: {e}")
             raise e from None

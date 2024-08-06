@@ -7,11 +7,13 @@ from ..api import DBConfig, DBCaseConfig, MetricType, IndexType
 class ElasticCloudConfig(DBConfig, BaseModel):
     cloud_id: SecretStr
     password: SecretStr
+    number_of_shards: int | None = 1
 
     def to_dict(self) -> dict:
         return {
             "cloud_id": self.cloud_id.get_secret_value(),
             "basic_auth": ("elastic", self.password.get_secret_value()),
+            "number_of_shards": self.number_of_shards,
         }
 
 
@@ -22,7 +24,7 @@ class ESElementType(str, Enum):
 
 class ElasticCloudIndexConfig(BaseModel, DBCaseConfig):
     element_type: ESElementType = ESElementType.float
-    index: IndexType = IndexType.ES_HNSW  # ES only support 'hnsw'
+    index: IndexType = IndexType.HNSW
 
     metric_type: MetricType | None = None
     efConstruction: int | None = None
@@ -43,7 +45,7 @@ class ElasticCloudIndexConfig(BaseModel, DBCaseConfig):
             "element_type": self.element_type.value,
             "similarity": self.parse_metric(),
             "index_options": {
-                "type": self.index.value,
+                "type": "hnsw",
                 "m": self.M,
                 "ef_construction": self.efConstruction,
             },
@@ -54,50 +56,30 @@ class ElasticCloudIndexConfig(BaseModel, DBCaseConfig):
         return {
             "num_candidates": self.num_candidates,
         }
+ 
 
-# class ElasticCloudConfig(DBConfig, BaseModel):
-# -    cloud_id: SecretStr
-# +    # cloud_id: SecretStr
-#      password: SecretStr
- 
-#      def to_dict(self) -> dict:
-#          return {
-# -            "cloud_id": self.cloud_id.get_secret_value(),
-# +            "hosts" : ['https://localhost:9200'],
-# +            "ca_certs" : "/home/ubuntu/other2/elasticsearch/http_ca.crt",
-# +
-# +            # "cloud_id": self.cloud_id.get_secret_value(),
-#              "basic_auth": ("elastic", self.password.get_secret_value()),
-#          }
- 
-# @@ -43,7 +46,7 @@ class ElasticCloudIndexConfig(BaseModel, DBCaseConfig):
-#              "element_type": self.element_type.value,
-#              "similarity": self.parse_metric(),
-#              "index_options": {
-# -                "type": self.index.value,
-# +                "type": "hnsw",
-#                  "m": self.M,
-#                  "ef_construction": self.efConstruction,
-#              },
-# @@ -54,3 +57,21 @@ class ElasticCloudIndexConfig(BaseModel, DBCaseConfig):
-#          return {
-#              "num_candidates": self.num_candidates,
-#          }
-# +
-# +class ElasticCloudINT8HNSWIndexConfig(ElasticCloudIndexConfig):
-# +    num_candidates = int
-# +
-# +    def index_param(self) -> dict:
-# +        return super().index_param() | {
-# +            "index_options": {
-# +                "type":"int8_hnsw"
-# +            }
-# +        }
-# +
-# +_elasticcloud_case_config = {
-# +    # WIP: wut
-# +    IndexType.HNSW: ElasticCloudIndexConfig,
-# +
-# +    IndexType.ES_HNSW: ElasticCloudIndexConfig,
-# +    IndexType.HNSWPQ: ElasticCloudINT8HNSWIndexConfig,
-# +}
+class HNSWConfig(ElasticCloudIndexConfig):
+    index: IndexType = IndexType.HNSW
+
+    def index_param(self) -> dict:
+        sup = super().index_param()
+        sup["index_options"] = sup["index_options"] | {
+            "type":"hnsw"
+        }
+        return sup
+
+
+class INT8HNSWConfig(ElasticCloudIndexConfig):
+    index: IndexType = IndexType.HNSW_INT8
+
+    def index_param(self) -> dict:
+        sup = super().index_param()
+        sup["index_options"] = sup["index_options"] | {
+            "type":"int8_hnsw"
+        }
+        return sup
+
+_elasticcloud_case_config = {
+    IndexType.HNSW: HNSWConfig,
+    IndexType.HNSW_INT8: INT8HNSWConfig,
+}

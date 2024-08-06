@@ -543,6 +543,8 @@ MilvusPerformanceConfig = [
     CaseConfigParamInput_build_algo,
     CaseConfigParamInput_cache_dataset_on_device,
     CaseConfigParamInput_refine_ratio,
+    CaseConfigParamInput_QuantizationRatio_SingleStoreDB,
+    CaseConfigParamInput_ReorderK,
 ]
 
 WeaviateLoadConfig = [

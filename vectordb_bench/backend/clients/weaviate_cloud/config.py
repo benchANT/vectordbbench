@@ -1,5 +1,6 @@
 from pydantic import BaseModel, SecretStr
 
+import weaviate
 from ..api import DBConfig, DBCaseConfig, MetricType
 
 class WeaviateConfig(DBConfig):
@@ -7,9 +8,13 @@ class WeaviateConfig(DBConfig):
     api_key: SecretStr
 
     def to_dict(self) -> dict:
+        value = weaviate.AuthApiKey(
+            api_key=self.api_key.get_secret_value()
+        )
         return {
             "url": self.url.get_secret_value(),
-            "auth_client_secret": self.api_key.get_secret_value(),
+            "auth_client_secret": value,
+            "startup_period": 100,
         }
 
 
